@@ -106,6 +106,7 @@ public:
   void setStatus(ThreadStatus st) { status = st; }
   char *getName() { return (name); }
   void Print() { printf("%s, ", name); }
+  void printStatus();
 
 private:
   // some of the private data for this class is listed above
@@ -120,11 +121,8 @@ private:
   // Allocate a stack for thread.
   // Used internally by Fork()
 
-  int userId;
-  int threadId;
-  extern int ThreadNum;
-
-  TODO : thread num
+  int uid;
+  int tid;
 
 #ifdef USER_PROGRAM
          // A thread running a user program actually has *two* sets of CPU registers --
@@ -139,6 +137,24 @@ public:
 
   AddrSpace *space; // User code this thread is running.
 #endif
+};
+
+class ThreadPool
+{
+private:
+  Thread **pool;
+  int poolSize;
+  int threadNum;
+  static bool poolExisted;
+  int findEmptySlot();
+  int findCurrentSlot();
+
+public:
+  ThreadPool(int _poolSize);
+  ~ThreadPool();
+  void ShowStatus();
+  Thread *createThread(char *threadName);
+  bool deleteCurrentThread();
 };
 
 // Magical machine-dependent routines, defined in switch.s

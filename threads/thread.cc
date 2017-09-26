@@ -20,9 +20,10 @@
 #include "synch.h"
 #include "system.h"
 
-#define STACK_FENCEPOST 0xdeadbeef // this is put at the top of the
-                                   // execution stack, for detecting
-                                   // stack overflows
+#define STACK_FENCEPOST                                                                            \
+    0xdeadbeef  // this is put at the top of the \
+        // execution stack, for detecting       \
+        // stack overflows
 
 //----------------------------------------------------------------------
 // Thread::Thread
@@ -32,11 +33,9 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char *threadName, int tid, int uid)
+Thread::Thread(char *threadName)
 {
     name = threadName;
-    threadId = tid;
-    userId = uid;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -88,14 +87,13 @@ Thread::~Thread()
 
 void Thread::Fork(VoidFunctionPtr func, void *arg)
 {
-    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n",
-          name, (int)func, (int *)arg);
+    DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n", name, (int)func, (int *)arg);
 
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
-    scheduler->ReadyToRun(this); // ReadyToRun assumes that interrupts
-                                 // are disabled!
+    scheduler->ReadyToRun(this);  // ReadyToRun assumes that interrupts
+                                  // are disabled!
     (void)interrupt->SetLevel(oldLevel);
 }
 
@@ -117,7 +115,7 @@ void Thread::Fork(VoidFunctionPtr func, void *arg)
 void Thread::CheckOverflow()
 {
     if (stack != NULL)
-#ifdef HOST_SNAKE // Stacks grow upward on the Snakes
+#ifdef HOST_SNAKE  // Stacks grow upward on the Snakes
         ASSERT(stack[StackSize - 1] == STACK_FENCEPOST);
 #else
         ASSERT((int)*stack == (int)STACK_FENCEPOST);
@@ -148,7 +146,8 @@ void Thread::Finish()
     DEBUG('t', "Finishing thread \"%s\"\n", getName());
 
     threadToBeDestroyed = currentThread;
-    Sleep(); // invokes SWITCH
+    threadPool->deleteCurrentThread();
+    Sleep();  // invokes SWITCH
     // not reached
 }
 
@@ -181,10 +180,10 @@ void Thread::Yield()
 
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL)
-    {
-        scheduler->ReadyToRun(this);
-        scheduler->Run(nextThread);
-    }
+        {
+            scheduler->ReadyToRun(this);
+            scheduler->Run(nextThread);
+        }
     (void)interrupt->SetLevel(oldLevel);
 }
 
@@ -218,9 +217,9 @@ void Thread::Sleep()
 
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
-        interrupt->Idle(); // no one to run, wait for an interrupt
+        interrupt->Idle();  // no one to run, wait for an interrupt
 
-    scheduler->Run(nextThread); // returns when we've been signalled
+    scheduler->Run(nextThread);  // returns when we've been signalled
 }
 
 //----------------------------------------------------------------------
@@ -231,8 +230,14 @@ void Thread::Sleep()
 //	member function.
 //----------------------------------------------------------------------
 
-static void ThreadFinish() { currentThread->Finish(); }
-static void InterruptEnable() { interrupt->Enable(); }
+static void ThreadFinish()
+{
+    currentThread->Finish();
+}
+static void InterruptEnable()
+{
+    interrupt->Enable();
+}
 void ThreadPrint(int arg)
 {
     Thread *t = (Thread *)arg;
@@ -257,15 +262,15 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 #ifdef HOST_SNAKE
     // HP stack works from low addresses to high addresses
-    stackTop = stack + 16; // HP requires 64-byte frame marker
+    stackTop = stack + 16;  // HP requires 64-byte frame marker
     stack[StackSize - 1] = STACK_FENCEPOST;
 #else
 // i386 & MIPS & SPARC stack works from high addresses to low addresses
 #ifdef HOST_SPARC
     // SPARC stack must contains at least 1 activation record to start with.
     stackTop = stack + StackSize - 96;
-#else // HOST_MIPS  || HOST_i386
-    stackTop = stack + StackSize - 4; // -4 to be on the safe side!
+#else  // HOST_MIPS  || HOST_i386
+    stackTop = stack + StackSize - 4;  // -4 to be on the safe side!
 #ifdef HOST_i386
     // the 80386 passes the return address on the stack.  In order for
     // SWITCH() to go to ThreadRoot when we switch to this thread, the
@@ -273,9 +278,9 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     // ThreadRoot.
     *(--stackTop) = (int)ThreadRoot;
 #endif
-#endif // HOST_SPARC
+#endif  // HOST_SPARC
     *stack = STACK_FENCEPOST;
-#endif // HOST_SNAKE
+#endif  // HOST_SNAKE
 
     machineState[PCState] = (int *)ThreadRoot;
     machineState[StartupPCState] = (int *)InterruptEnable;
@@ -298,8 +303,7 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 void Thread::SaveUserState()
 {
-    for (int i = 0; i < NumTotalRegs; i++)
-        userRegisters[i] = machine->ReadRegister(i);
+    for (int i = 0; i < NumTotalRegs; i++) userRegisters[i] = machine->ReadRegister(i);
 }
 
 //----------------------------------------------------------------------
@@ -313,7 +317,91 @@ void Thread::SaveUserState()
 
 void Thread::RestoreUserState()
 {
-    for (int i = 0; i < NumTotalRegs; i++)
-        machine->WriteRegister(i, userRegisters[i]);
+    for (int i = 0; i < NumTotalRegs; i++) machine->WriteRegister(i, userRegisters[i]);
 }
 #endif
+
+void Thread::printStatus()
+{
+    print("%d %d %s\n", tid, uid, name);
+}
+
+int ThreadPool::findEmptySlot()
+{
+    for (int i = 0; i < poolSize; ++i)
+        if (pool[i] == NULL)
+            return i;
+    retunr - 1;
+}
+
+int ThreadPool::findEmptySlot()
+{
+    for (int i = 0; i < poolSize;++i)
+        if(pool[i] == currentThread)
+            return i;
+    retunr - 1;
+
+}
+
+ThreadPool::ThreadPool(int _poolSize)
+{
+    if (poolExisted)
+        {
+            DEBUG('t', "Multiply threadpool!");
+            return;
+        }
+    poolExisted = true;
+    poolSize = _poolSize;
+    threadNum = 0;
+    pool = new Thread *[poolSize];
+    for (int i = 0; i < poolSize; ++i) pool[i] = NULL;
+}
+
+
+ThreadPool::~ThreadPool()
+{
+    poolExisted = false;
+    if (pool != NULL)
+        delete pool;
+}
+
+void ThreadPool::ShowStatus()
+{
+    printf("TID\tUID\tNAME\n");
+    Thread *tp;
+    for (int i = 0; i < poolSize; ++i)
+        {
+            tp = pool[i];
+            if (tp != NULL)
+                tp->printStatus();
+        }
+}
+
+Thread *ThreadPool::createThread(char *threadName)
+{
+    int pos = findEmptySlot();
+    if (pos == -1)
+    {
+        DEBUG('t',"Thread pool is full!")
+        return;
+    }
+    Thread *t = new Thread(threadName);
+    pool[pos] = t;
+    t->tid = pos + 1;
+    t->uid = userId;
+    threadNum++;
+    return t;
+}
+
+bool *ThreadPool::deleteCurrentThread()
+{
+    int pos = findCurrentSlot();
+    if(pos == -1)
+    {
+        DEBUG('t',"Can't find current thread in pool.")
+        return false;
+    }
+    pool[pos] = NULL;
+    threadNum--;
+    return true;
+}

@@ -30,10 +30,20 @@ void SimpleThread(int which)
     int num;
 
     for (num = 0; num < 5; num++)
-    {
-        printf("*** thread %d looped %d times\n", which, num);
-        currentThread->Yield();
-    }
+        {
+            printf("*** thread %d looped %d times\n", which, num);
+            currentThread->Yield();
+        }
+}
+
+//----------------------------------------------------------------------
+// ThreadHello
+//  Say hello from a new forked thread.
+//----------------------------------------------------------------------
+
+void ThreadHello()
+{
+    printf("Thread %d named %s has been created.\n", currentThread->tid, currentThread->name);
 }
 
 //----------------------------------------------------------------------
@@ -54,12 +64,20 @@ void ThreadTest1()
 
 //----------------------------------------------------------------------
 // ThreadTest2
-TODO: thread status
-       //----------------------------------------------------------------------
+//----------------------------------------------------------------------
 
-       void
-       ThreadTest2()
+void ThreadTest2()
 {
+    DEBUG('t', "Entering ThreadTest2");
+
+    for (int i = 0; i < 130; ++i)
+        {
+            Thread *t = threadPool->createThread("forked thread");
+            if (t != NULL)
+                t->Fork(ThreadHello, (void *)1);
+            else
+                printf("No empty slot in thread pool!\n");
+        }
 }
 
 //----------------------------------------------------------------------
@@ -70,12 +88,15 @@ TODO: thread status
 void ThreadTest()
 {
     switch (testnum)
-    {
-    case 1:
-        ThreadTest1();
-        break;
-    default:
-        printf("No test specified.\n");
-        break;
-    }
+        {
+            case 1:
+                ThreadTest1();
+                break;
+            case 2:
+                ThreadTest2();
+                break;
+            default:
+                printf("No test specified.\n");
+                break;
+        }
 }

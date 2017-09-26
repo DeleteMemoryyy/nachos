@@ -28,6 +28,12 @@ extern Scheduler *scheduler;			// the ready list
 extern Interrupt *interrupt;			// interrupt status
 extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
+extern int userId;			//  the id number of current user
+
+#ifdef THREADS
+extern ThreadPool *threadPool;
+void ThreadStatus();
+#endif
 
 #ifdef USER_PROGRAM
 #include "machine.h"
