@@ -78,6 +78,8 @@ void ThreadTest2()
             else
                 printf("No empty slot in thread pool!\n");
         }
+
+    ThreadStatus();
 }
 
 //----------------------------------------------------------------------
