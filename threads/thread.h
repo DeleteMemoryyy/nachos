@@ -52,15 +52,15 @@
 
 // Size of the thread's private execution stack.
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
-#define StackSize (4 * 1024) // in words
+#define StackSize (4 * 1024)  // in words
 
 // Thread state
 enum ThreadStatus
 {
-  JUST_CREATED,
-  RUNNING,
-  READY,
-  BLOCKED
+    JUST_CREATED,
+    RUNNING,
+    READY,
+    BLOCKED
 };
 
 // external function, dummy routine whose sole job is to call Thread::Print
@@ -79,82 +79,113 @@ extern void ThreadPrint(int arg);
 
 class Thread
 {
-private:
-  // NOTE: DO NOT CHANGE the order of these first two members.
-  // THEY MUST be in this position for SWITCH to work.
-  int *stackTop;                        // the current stack pointer
-  void *machineState[MachineStateSize]; // all registers except for stackTop
+  private:
+    // NOTE: DO NOT CHANGE the order of these first two members.
+    // THEY MUST be in this position for SWITCH to work.
+    int *stackTop;                         // the current stack pointer
+    void *machineState[MachineStateSize];  // all registers except for stackTop
 
-public:
-  Thread(char *debugName); // initialize a Thread
-  ~Thread();               // deallocate a Thread
-                           // NOTE -- thread being deleted
-                           // must not be running when delete
-                           // is called
+  public:
+    Thread(char *debugName);  // initialize a Thread
+    ~Thread();                // deallocate a Thread
+                              // NOTE -- thread being deleted
+                              // must not be running when delete
+                              // is called
 
-  // basic thread operations
+    // basic thread operations
 
-  void Fork(VoidFunctionPtr func, void *arg); // Make thread run (*func)(arg)
-  void Yield();                               // Relinquish the CPU if any
-  // other thread is runnable
-  void Sleep(); // Put the thread to sleep and
-  // relinquish the processor
-  void Finish(); // The thread is done executing
+    void Fork(VoidFunctionPtr func, void *arg);  // Make thread run (*func)(arg)
+    void Yield();                                // Relinquish the CPU if any
+    // other thread is runnable
+    void Sleep();  // Put the thread to sleep and
+    // relinquish the processor
+    void Finish();  // The thread is done executing
 
-  void CheckOverflow(); // Check if thread has
-  // overflowed its stack
-  void setStatus(ThreadStatus st) { status = st; }
-  char *getName() { return (name); }
-  void Print() { printf("%s, ", name); }
-  void printStatus();
+    void CheckOverflow();  // Check if thread has
+    // overflowed its stack
+    void setStatus(ThreadStatus st)
+    {
+        status = st;
+    }
+    char *getName()
+    {
+        return (name);
+    }
+    int getUid()
+    {
+        return (uid);
+    }
+    int getTid()
+    {
+        return (tid);
+    }
+    void Print()
+    {
+        printf("%s, ", name);
+    }
+    void printStatus();
 
-private:
-  // some of the private data for this class is listed above
+  private:
+    // some of the private data for this class is listed above
 
-  int *stack;          // Bottom of the stack
-                       // NULL if this is the main thread
-                       // (If NULL, don't deallocate stack)
-  ThreadStatus status; // ready, running or blocked
-  char *name;
+    int *stack;           // Bottom of the stack
+                          // NULL if this is the main thread
+                          // (If NULL, don't deallocate stack)
+    ThreadStatus status;  // ready, running or blocked
+    char *name;
 
-  void StackAllocate(VoidFunctionPtr func, void *arg);
-  // Allocate a stack for thread.
-  // Used internally by Fork()
+    void StackAllocate(VoidFunctionPtr func, void *arg);
+    // Allocate a stack for thread.
+    // Used internally by Fork()
 
-  int uid;
-  int tid;
+    int uid;
+    int tid;
 
 #ifdef USER_PROGRAM
-         // A thread running a user program actually has *two* sets of CPU registers --
-         // one for its state while executing user code, one for its state
-         // while executing kernel code.
+    // A thread running a user program actually has *two* sets of CPU registers --
+    // one for its state while executing user code, one for its state
+    // while executing kernel code.
 
-         int userRegisters[NumTotalRegs]; // user-level CPU register state
+    int userRegisters[NumTotalRegs];  // user-level CPU register state
 
-public:
-  void SaveUserState();    // save user-level register state
-  void RestoreUserState(); // restore user-level register state
+  public:
+    void SaveUserState();     // save user-level register state
+    void RestoreUserState();  // restore user-level register state
 
-  AddrSpace *space; // User code this thread is running.
+    AddrSpace *space;  // User code this thread is running.
 #endif
+
+  public:
+    void setUid(int _uid)
+    {
+        uid = _uid;
+    }
+    void setTid(int _tid)
+    {
+        tid = _tid;
+    }
 };
 
 class ThreadPool
 {
-private:
-  Thread **pool;
-  int poolSize;
-  int threadNum;
-  static bool poolExisted;
-  int findEmptySlot();
-  int findCurrentSlot();
-
-public:
-  ThreadPool(int _poolSize);
-  ~ThreadPool();
-  void ShowStatus();
-  Thread *createThread(char *threadName);
-  bool deleteCurrentThread();
+  private:
+    static ThreadPool *m_instance;
+    Thread **pool;
+    int poolSize;
+    int threadNum;
+    int findEmptySlot();
+    int findCurrentSlot();
+    ThreadPool(int _poolSize);
+    
+  public:
+    static ThreadPool *getInstance()
+    {
+        return m_instance;
+    }
+    ~ThreadPool();
+    void ShowStatus();
+    Thread *createThread(char *threadName);
+    bool deleteCurrentThread();
 };
 
 // Magical machine-dependent routines, defined in switch.s
@@ -170,4 +201,4 @@ void ThreadRoot();
 void SWITCH(Thread *oldThread, Thread *newThread);
 }
 
-#endif // THREAD_H
+#endif  // THREAD_H

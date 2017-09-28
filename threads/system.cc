@@ -21,14 +21,15 @@ Timer *timer;                 // the hardware timer device,
 int userId;                   //  the id number of current user
 
 // Threads Managements
-#ifdef THREADS
-ThreadPool *threadPool;
+// #ifdef THREADS
+ThreadPool *ThreadPool::m_instance = new ThreadPool(128);
+ThreadPool *threadPool = ThreadPool::getInstance();
 void ThreadStatus()
 {
     if (threadPool != NULL)
         threadPool->ShowStatus();
 }
-#endif
+// #endif
 
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
@@ -164,11 +165,6 @@ void Initialize(int argc, char **argv)
 
     interrupt->Enable();
     CallOnUserAbort(Cleanup);  // if user hits ctl-C
-
-#ifdef THREADS
-    ThreadPool::poolExisted = false;
-    threadPool = new ThreadPool(128);
-#endif
 
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);  // this must come first

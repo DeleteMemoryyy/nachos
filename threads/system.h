@@ -30,10 +30,10 @@ extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
 extern int userId;			//  the id number of current user
 
-#ifdef THREADS
+// #ifdef THREADS
 extern ThreadPool *threadPool;
 void ThreadStatus();
-#endif
+// #endif
 
 #ifdef USER_PROGRAM
 #include "machine.h"

@@ -43,7 +43,7 @@ void SimpleThread(int which)
 
 void ThreadHello()
 {
-    printf("Thread %d named %s has been created.\n", currentThread->tid, currentThread->name);
+    printf("Thread %d named %s has been created.\n", currentThread->getTid(), currentThread->getName());
 }
 
 //----------------------------------------------------------------------
@@ -98,7 +98,7 @@ void ThreadTest()
                 ThreadTest2();
                 break;
             default:
-                printf("No test specified.\n");
+                printf("No test specified. TestNum: %d\n",testnum);
                 break;
         }
 }

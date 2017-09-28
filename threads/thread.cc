@@ -323,7 +323,7 @@ void Thread::RestoreUserState()
 
 void Thread::printStatus()
 {
-    print("%d %d %s\n", tid, uid, name);
+    printf("%d %d %s\n", tid, uid, name);
 }
 
 int ThreadPool::findEmptySlot()
@@ -331,26 +331,19 @@ int ThreadPool::findEmptySlot()
     for (int i = 0; i < poolSize; ++i)
         if (pool[i] == NULL)
             return i;
-    retunr - 1;
+    return - 1;
 }
 
-int ThreadPool::findEmptySlot()
+int ThreadPool::findCurrentSlot()
 {
     for (int i = 0; i < poolSize;++i)
         if(pool[i] == currentThread)
             return i;
-    retunr - 1;
-
+    return - 1;
 }
 
 ThreadPool::ThreadPool(int _poolSize)
 {
-    if (poolExisted)
-        {
-            DEBUG('t', "Multiply threadpool!");
-            return;
-        }
-    poolExisted = true;
     poolSize = _poolSize;
     threadNum = 0;
     pool = new Thread *[poolSize];
@@ -360,7 +353,7 @@ ThreadPool::ThreadPool(int _poolSize)
 
 ThreadPool::~ThreadPool()
 {
-    poolExisted = false;
+    m_instance = NULL;
     if (pool != NULL)
         delete pool;
 }
@@ -382,23 +375,23 @@ Thread *ThreadPool::createThread(char *threadName)
     int pos = findEmptySlot();
     if (pos == -1)
     {
-        DEBUG('t',"Thread pool is full!")
+        DEBUG('t', "Thread pool is full!");
         return;
     }
     Thread *t = new Thread(threadName);
     pool[pos] = t;
-    t->tid = pos + 1;
-    t->uid = userId;
+    t->setTid(pos + 1);
+    t->setUid(userId);
     threadNum++;
     return t;
 }
 
-bool *ThreadPool::deleteCurrentThread()
+bool ThreadPool::deleteCurrentThread()
 {
     int pos = findCurrentSlot();
     if(pos == -1)
     {
-        DEBUG('t',"Can't find current thread in pool.")
+        DEBUG('t', "Can't find current thread in pool.");
         return false;
     }
     pool[pos] = NULL;

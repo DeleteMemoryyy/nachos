@@ -21,14 +21,14 @@ all:
 
 # don't delete executables in "test" in case there is no cross-compiler
 clean:
-	/bin/csh -c "rm -f *~ */{core,nachos,DISK,*.o,swtch.s,*~} test/{*.coff} bin/{coff2flat,coff2noff,disassemble,out}"
+	/bin/bash -c "rm -f *~ */{core,nachos,DISK,*.o,swtch.s,*~} test/{*.coff} bin/{coff2flat,coff2noff,disassemble,out}"
 
 print:
-	/bin/csh -c "$(LPR) Makefile* */Makefile"
-	/bin/csh -c "$(LPR) threads/*.h threads/*.cc threads/*.s"
-	/bin/csh -c "$(LPR) userprog/*.h userprog/*.cc" 
-	/bin/csh -c "$(LPR) filesys/*.h filesys/*.cc
-	/bin/csh -c "$(LPR) network/*.h network/*.cc 
-	/bin/csh -c "$(LPR) machine/*.h machine/*.cc
-	/bin/csh -c "$(LPR) bin/noff.h bin/coff.h bin/coff2noff.c"
-	/bin/csh -c "$(LPR) test/*.h test/*.c test/*.s"
+	/bin/bash -c "$(LPR) Makefile* */Makefile"
+	/bin/bash -c "$(LPR) threads/*.h threads/*.cc threads/*.s"
+	/bin/bash -c "$(LPR) userprog/*.h userprog/*.cc" 
+	/bin/bash -c "$(LPR) filesys/*.h filesys/*.cc
+	/bin/bash -c "$(LPR) network/*.h network/*.cc 
+	/bin/bash -c "$(LPR) machine/*.h machine/*.cc
+	/bin/bash -c "$(LPR) bin/noff.h bin/coff.h bin/coff2noff.c"
+	/bin/bash -c "$(LPR) test/*.h test/*.c test/*.s"
