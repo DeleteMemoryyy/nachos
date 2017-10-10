@@ -12,7 +12,7 @@
 // These are all initialized and de-allocated by this file.
 
 Thread *currentThread;        // the thread we are running now
-Thread *threadToBeDestroyed;  // the thread that just finished
+List *threadToBeDestroyed;   // the thread list that just finished
 Scheduler *scheduler;         // the ready list
 Interrupt *interrupt;         // interrupt status
 Statistics *stats;            // performance metrics
@@ -29,7 +29,7 @@ void ThreadStatus()
     if (threadPool != NULL)
         threadPool->ShowStatus();
 }
-// #endif
+    // #endif
 
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
@@ -71,8 +71,30 @@ extern void Cleanup();
 //----------------------------------------------------------------------
 static void TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode)
-        interrupt->YieldOnReturn();
+    if (interrupt->getStatus() != IdleMode && currentThread->getPriority() > 0)
+        {
+            int runTime = stats->totalTicks - currentThread->getLastStartTime();
+            if (runTime >= currentThread->getTimeSlide())
+                {
+                    currentThread->addCpuTime(runTime);
+                    int newStep = currentThread->getCurrentStep() + 1;
+                    if (newStep > 120)
+                        {
+                            int oldPriority = currentThread->getPriority();
+                            int newPriority = oldPriority;
+                            if (oldPriority < 120)
+                                {
+                                    newPriority = oldPriority + 1;
+                                    currentThread->setPriority(newPriority);
+                                }
+                            newStep = newPriority;
+                        }
+                    currentThread->setCurrentStep(newStep);
+                    ;
+                    printf("Thread %s runs out its time slide.\n", currentThread->getName());
+                    interrupt->YieldOnReturn();
+                }
+        }
 }
 
 //----------------------------------------------------------------------
@@ -152,15 +174,16 @@ void Initialize(int argc, char **argv)
     stats = new Statistics();     // collect statistics
     interrupt = new Interrupt;    // start up interrupt handling
     scheduler = new Scheduler();  // initialize the ready queue
-    if (randomYield)              // start the timer (if needed)
-        timer = new Timer(TimerInterruptHandler, 0, randomYield);
+    
+    timer = new Timer(TimerInterruptHandler, 0, randomYield);   // start the timer (if needed)
 
-    threadToBeDestroyed = NULL;
+    threadToBeDestroyed = new List;
 
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
     // object to save its state.
     currentThread = new Thread("main");
+    currentThread->setPriority(0);
     currentThread->setStatus(RUNNING);
 
     interrupt->Enable();
@@ -211,7 +234,11 @@ void Cleanup()
     delete synchDisk;
 #endif
 
-    delete timer;
+    if(timer != NULL)
+        delete timer;
+
+    if (threadToBeDestroyed!=NULL)
+        delete threadToBeDestroyed;
     delete scheduler;
     delete interrupt;
 

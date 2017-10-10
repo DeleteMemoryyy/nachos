@@ -72,6 +72,7 @@ void ThreadTest2()
 
     for (int i = 0; i < 130; ++i)
         {
+            printf("TimeTick: %d\n",stats->totalTicks);
             Thread *t = threadPool->createThread("forked thread");
             if (t != NULL)
                 t->Fork(ThreadHello, (void *)1);
@@ -79,6 +80,34 @@ void ThreadTest2()
                 printf("No empty slot in thread pool!\n");
         }
 
+    ThreadStatus();
+}
+
+//----------------------------------------------------------------------
+// ThreadTest3
+//----------------------------------------------------------------------
+
+void ThreadTest3()
+{
+    DEBUG('t', "Entering ThreadTest3");
+
+    int p[10] = {1, 3, 5, 7, 9, 2, 4, 10, 3, 5};
+
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 10;++j)
+            {
+                printf("TimeTick: %d\n", stats->totalTicks);
+                char name[10];
+                memset(name, 0, 10);
+                sprintf(name, "%d_%d\0", i*j, p[j]);
+                Thread *t = threadPool->createThread(name);
+                t->setPriority(p[j]);
+                if (t != NULL)
+                    t->Fork(ThreadHello, (void *)1);
+                else
+                    printf("No empty slot in thread pool!\n");
+            }
+    
     ThreadStatus();
 }
 
@@ -97,6 +126,8 @@ void ThreadTest()
             case 2:
                 ThreadTest2();
                 break;
+            case 3:
+                ThreadTest3();
             default:
                 printf("No test specified. TestNum: %d\n",testnum);
                 break;

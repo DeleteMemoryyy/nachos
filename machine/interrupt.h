@@ -91,6 +91,8 @@ class Interrupt {
 					// next interrupt
 
     void Halt(); 			// quit and print out stats
+
+    bool AdvanceTime();
     
     void YieldOnReturn();		// cause a context switch on return 
 					// from an interrupt handler

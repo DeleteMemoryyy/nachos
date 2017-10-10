@@ -35,10 +35,19 @@
 
 Thread::Thread(char *threadName)
 {
-    name = threadName;
+    strncpy(name, threadName,10);
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
+
+    uid = 0;
+    tid = 0;
+    priority = 1;
+    lastStartTime = 0;
+    cpuTime = 0;
+    currentStep = 1;
+    timeSlide = 10;
+
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
@@ -89,12 +98,21 @@ void Thread::Fork(VoidFunctionPtr func, void *arg)
 {
     DEBUG('t', "Forking thread \"%s\" with func = 0x%x, arg = %d\n", name, (int)func, (int *)arg);
 
+    bool switchFlag = FALSE;
+
     StackAllocate(func, arg);
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+    switchFlag = currentStep < currentThread->currentStep;
     scheduler->ReadyToRun(this);  // ReadyToRun assumes that interrupts
                                   // are disabled!
     (void)interrupt->SetLevel(oldLevel);
+
+    if(switchFlag)
+    {
+        currentThread->Yield();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -145,7 +163,7 @@ void Thread::Finish()
 
     DEBUG('t', "Finishing thread \"%s\"\n", getName());
 
-    threadToBeDestroyed = currentThread;
+    threadToBeDestroyed->Append((void *)currentThread);
     threadPool->deleteCurrentThread();
     Sleep();  // invokes SWITCH
     // not reached
@@ -218,6 +236,8 @@ void Thread::Sleep()
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
         interrupt->Idle();  // no one to run, wait for an interrupt
+
+    interrupt->AdvanceTime();  // acvance clock to next pending interrupt
 
     scheduler->Run(nextThread);  // returns when we've been signalled
 }

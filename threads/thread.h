@@ -111,14 +111,6 @@ class Thread
     {
         return (name);
     }
-    int getUid()
-    {
-        return (uid);
-    }
-    int getTid()
-    {
-        return (tid);
-    }
     void Print()
     {
         printf("%s, ", name);
@@ -132,7 +124,7 @@ class Thread
                           // NULL if this is the main thread
                           // (If NULL, don't deallocate stack)
     ThreadStatus status;  // ready, running or blocked
-    char *name;
+    char name[10];
 
     void StackAllocate(VoidFunctionPtr func, void *arg);
     // Allocate a stack for thread.
@@ -140,6 +132,12 @@ class Thread
 
     int uid;
     int tid;
+
+    int priority;
+    int lastStartTime;
+    int cpuTime;
+    int currentStep;
+    int timeSlide;
 
 #ifdef USER_PROGRAM
     // A thread running a user program actually has *two* sets of CPU registers --
@@ -156,6 +154,34 @@ class Thread
 #endif
 
   public:
+    int getUid()
+    {
+        return (uid);
+    }
+    int getTid()
+    {
+        return (tid);
+    }
+    int getPriority()
+    {
+        return priority;
+    }
+    int getCpuTime()
+    {
+        return cpuTime;
+    }
+    int getLastStartTime()
+    {
+        return lastStartTime;
+    }
+    int getCurrentStep()
+    {
+        return currentStep;
+    }
+    int getTimeSlide()
+    {
+        return timeSlide;
+    }
     void setUid(int _uid)
     {
         uid = _uid;
@@ -164,6 +190,25 @@ class Thread
     {
         tid = _tid;
     }
+    void setPriority(int _p)
+    {
+        priority = _p;
+        currentStep = _p;
+        timeSlide = 20 * priority;
+    }
+    void setLastStartTime(int _t)
+    {
+        lastStartTime = _t;
+    }
+    void addCpuTime(int _t)
+    {
+        cpuTime += _t;
+    }
+    void setCurrentStep(int _step)
+    {
+        currentStep = _step;
+    }
+
 };
 
 class ThreadPool

@@ -335,6 +335,25 @@ Interrupt::CheckIfDue(bool advanceClock)
     return TRUE;
 }
 
+bool Interrupt::AdvanceTime()
+{
+    int when;
+    
+    ASSERT(level == IntOff);		// interrupts need to be disabled,
+    PendingInterrupt *toOccur = pending->SortedRemove(&when);
+    if(toOccur == NULL)
+        return FALSE;
+	pending->SortedInsert(toOccur, when);
+    if(when>stats->totalTicks)
+    {
+        stats->idleTicks += (when - stats->totalTicks);
+        stats->totalTicks = when;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
 //----------------------------------------------------------------------
 // PrintPending
 // 	Print information about an interrupt that is scheduled to occur.
