@@ -99,7 +99,7 @@ void ThreadTest3()
                 printf("TimeTick: %d\n", stats->totalTicks);
                 char name[10];
                 memset(name, 0, 10);
-                sprintf(name, "%d_%d\0", i*j, p[j]);
+                sprintf(name, "%d_%d\0", (i+1)*(j+1), p[j]);
                 Thread *t = threadPool->createThread(name);
                 t->setPriority(p[j]);
                 if (t != NULL)
