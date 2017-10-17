@@ -11,14 +11,14 @@
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
 
-Thread *currentThread;        // the thread we are running now
-List *threadToBeDestroyed;   // the thread list that just finished
-Scheduler *scheduler;         // the ready list
-Interrupt *interrupt;         // interrupt status
-Statistics *stats;            // performance metrics
-Timer *timer;                 // the hardware timer device,
-                              // for invoking context switches
-int userId;                   //  the id number of current user
+Thread *currentThread;      // the thread we are running now
+List *threadToBeDestroyed;  // the thread list that just finished
+Scheduler *scheduler;       // the ready list
+Interrupt *interrupt;       // interrupt status
+Statistics *stats;          // performance metrics
+Timer *timer;               // the hardware timer device,
+                            // for invoking context switches
+int userId;                 //  the id number of current user
 
 // Threads Managements
 // #ifdef THREADS
@@ -91,7 +91,9 @@ static void TimerInterruptHandler(int dummy)
                         }
                     currentThread->setCurrentStep(newStep);
                     ;
+#ifdef DEBUG_SCHEDULER
                     printf("Thread %s runs out its time slide.\n", currentThread->getName());
+#endif
                     interrupt->YieldOnReturn();
                 }
         }
@@ -174,8 +176,8 @@ void Initialize(int argc, char **argv)
     stats = new Statistics();     // collect statistics
     interrupt = new Interrupt;    // start up interrupt handling
     scheduler = new Scheduler();  // initialize the ready queue
-    
-    timer = new Timer(TimerInterruptHandler, 0, randomYield);   // start the timer (if needed)
+
+    timer = new Timer(TimerInterruptHandler, 0, randomYield);  // start the timer (if needed)
 
     threadToBeDestroyed = new List;
 
@@ -234,10 +236,10 @@ void Cleanup()
     delete synchDisk;
 #endif
 
-    if(timer != NULL)
+    if (timer != NULL)
         delete timer;
 
-    if (threadToBeDestroyed!=NULL)
+    if (threadToBeDestroyed != NULL)
         delete threadToBeDestroyed;
     delete scheduler;
     delete interrupt;
