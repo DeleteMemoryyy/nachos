@@ -32,9 +32,10 @@
 					// the disk sector size, for
 					// simplicity
 
-#define NumPhysPages    32
+#define NumPhysPages    128
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
+#define TLB_LRU
 
 enum ExceptionType { NoException,           // Everything ok!
 		     SyscallException,      // A program executed a system call.
@@ -144,14 +145,19 @@ class Machine {
 				// system call or other exception.  
 
     void Debugger();		// invoke the user program debugger
-    void DumpState();		// print the user CPU and memory state 
+    void DumpState();		// print the user CPU and memory state
 
+    void TLBMissHandler();
+    void PageFaultHandler();
 
-// Data structures -- all of these are accessible to Nachos kernel code.
-// "public" for convenience.
-//
-// Note that *all* communication between the user program and the kernel 
-// are in terms of these data structures.
+    void TLBLoad(int vpn);
+    int PageLoad(int vpn);
+
+    // Data structures -- all of these are accessible to Nachos kernel code.
+    // "public" for convenience.
+    //
+    // Note that *all* communication between the user program and the kernel
+    // are in terms of these data structures.
 
     char *mainMemory;		// physical memory to store user program,
 				// code and data, while executing
@@ -187,6 +193,7 @@ class Machine {
 				// simulated instruction
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
+    int timeStamp;              // timestamp for LRU replacement algorithm
 };
 
 extern void ExceptionHandler(ExceptionType which);

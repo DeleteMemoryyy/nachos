@@ -186,39 +186,39 @@ void Condition::Broadcast(Lock *conditionLock)
     (void)interrupt->SetLevel(oldLevel);
 }
 
-Barrier::Barrier(char *debugName, int initialValue)
-{
-    name = debugName;
-    value = initialValue;
-    conditionLock = new Lock("Lock in Barrier");
-    cv = new Condition("CV in Barrier");
-}
+// Barrier::Barrier(char *debugName, int initialValue)
+// {
+//     name = debugName;
+//     value = initialValue;
+//     conditionLock = new Lock("Lock in Barrier");
+//     cv = new Condition("CV in Barrier");
+// }
 
-Barrier::~Barrier()
-{
-    if (conditionLock != NULL)
-        delete conditionLock;
-    if (cv != NULL)
-        delete cv;
-}
+// Barrier::~Barrier()
+// {
+//     if (conditionLock != NULL)
+//         delete conditionLock;
+//     if (cv != NULL)
+//         delete cv;
+// }
 
-void Barrier::Wait()
-{
-    conditionLock->Acquire();
+// void Barrier::Wait()
+// {
+//     conditionLock->Acquire();
 
-    value--;
+//     value--;
 
-    if (value == 0)
-        {
-            cv->Broadcast(conditionLock);
-            conditionLock->Release();
-            return;
-        }
-    else
-        cv->Wait(conditionLock);
+//     if (value == 0)
+//         {
+//             cv->Broadcast(conditionLock);
+//             conditionLock->Release();
+//             return;
+//         }
+//     else
+//         cv->Wait(conditionLock);
 
-    conditionLock->Release();
-}
+//     conditionLock->Release();
+// }
 
 RWLock::RWLock(char *debugName)
 {

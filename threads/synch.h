@@ -151,19 +151,19 @@ class Condition
     List *queue;
 };
 
-class Barrier
-{
-public:
-  Barrier(char *debugName,int initialValue);
-  ~Barrier();
-  void Wait();
+// class Barrier
+// {
+// public:
+//   Barrier(char *debugName,int initialValue);
+//   ~Barrier();
+//   void Wait();
 
-private:
-  char *name;
-  int value;
-  Lock *conditionLock;
-  Condition *cv;
-};
+// private:
+//   char *name;
+//   int value;
+//   Lock *conditionLock;
+//   Condition *cv;
+// };
 
 class RWLock
 {

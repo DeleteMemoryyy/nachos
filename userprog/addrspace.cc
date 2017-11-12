@@ -78,6 +78,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
+    printf("    Loading memory\n");
+    printf("    Virtual pages num:  %d\n", numPages);
+    printf("    Physical pages num:  %d\n", NumPhysPages);
+
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have

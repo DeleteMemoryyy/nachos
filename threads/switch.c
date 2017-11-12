@@ -266,7 +266,6 @@ SWITCH
 #endif
 
 #ifdef HOST_i386
-
         .text
         .align  2
 

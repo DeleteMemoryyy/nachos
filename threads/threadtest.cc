@@ -279,60 +279,60 @@ void ThreadTest5()
 //----------------------------------------------------------------------
 // ThreadTest6  // Barrier Test
 //----------------------------------------------------------------------
-Barrier barrierEven("BarrierEven", 5);
-Barrier barrierOdd("BarrierOdd", 5);
+// Barrier barrierEven("BarrierEven", 5);
+// Barrier barrierOdd("BarrierOdd", 5);
 
-void AddToBarrierOdd()
-{
-    printf("%s\n",currentThread->getName());
-    barrierOdd.Add();
-    ThreadHello();
-    currentThread->Yield();
-}
+// void AddToBarrierOdd()
+// {
+//     printf("%s\n",currentThread->getName());
+//     barrierOdd.Add();
+//     ThreadHello();
+//     currentThread->Yield();
+// }
 
-void AddToBarrierEven()
-{
-    printf("%s\n",currentThread->getName());
-    barrierEven.Add();
-    ThreadHello();
-    currentThread->Yield();
-}
+// void AddToBarrierEven()
+// {
+//     printf("%s\n",currentThread->getName());
+//     barrierEven.Add();
+//     ThreadHello();
+//     currentThread->Yield();
+// }
 
-void ThreadTest6()
-{
-    int p[10] = {1, 3, 6, 7, 9, 2, 4, 10, 8, 5};
-    Thread *pool1[10];
-    for (int i = 0; i < 10; ++i)
-        {
-            char name[10];
-            memset(name, 0, 10);
-            sprintf(name, "%d_1\0", p[i]-1);
-            pool1[i] = threadPool->createThread(name);
-        }
+// void ThreadTest6()
+// {
+//     int p[10] = {1, 3, 6, 7, 9, 2, 4, 10, 8, 5};
+//     Thread *pool1[10];
+//     for (int i = 0; i < 10; ++i)
+//         {
+//             char name[10];
+//             memset(name, 0, 10);
+//             sprintf(name, "%d_1\0", p[i]-1);
+//             pool1[i] = threadPool->createThread(name);
+//         }
 
-    for (int i = 0; i < 10; ++i)
-        pool1[p[i]-1]->Fork(ThreadHello, (void *)1);
+//     for (int i = 0; i < 10; ++i)
+//         pool1[p[i]-1]->Fork(ThreadHello, (void *)1);
 
-    printf("\n\n");
+//     printf("\n\n");
 
-    Thread *pool2[10];
-    for (int i = 0; i < 10; ++i)
-        {
-            char name[10];
-            memset(name, 0, 10);
-            sprintf(name, "%d_2\0", p[i]-1);
-            pool2[i] = threadPool->createThread(name);
-        }
+//     Thread *pool2[10];
+//     for (int i = 0; i < 10; ++i)
+//         {
+//             char name[10];
+//             memset(name, 0, 10);
+//             sprintf(name, "%d_2\0", p[i]-1);
+//             pool2[i] = threadPool->createThread(name);
+//         }
 
-    for (int i = 0; i < 10; ++i)
-        {
-            if (((p[i]-1) % 2) == 0)
-                pool2[p[i]-1]->Fork(AddToBarrierEven, (void *)1);
-            else
-                pool2[p[i]-1]->Fork(AddToBarrierOdd, (void *)1);
-        }
-    ThreadStatus();
-}
+//     for (int i = 0; i < 10; ++i)
+//         {
+//             if (((p[i]-1) % 2) == 0)
+//                 pool2[p[i]-1]->Fork(AddToBarrierEven, (void *)1);
+//             else
+//                 pool2[p[i]-1]->Fork(AddToBarrierOdd, (void *)1);
+//         }
+//     ThreadStatus();
+// }
 
 //----------------------------------------------------------------------
 // ThreadTest7  // RWLock Test
@@ -423,7 +423,7 @@ void ThreadTest()
                 ThreadTest5();
                 break;
             case 6:
-                ThreadTest6();
+                // ThreadTest6();
                 break;
             case 7:
                 ThreadTest7();
