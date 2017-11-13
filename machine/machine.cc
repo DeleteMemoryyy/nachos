@@ -76,6 +76,8 @@ Machine::Machine(bool debug)
 
     singleStep = debug;
     timeStamp = 0;
+    TLBHitCount = 0;
+    TLBMissCount = 0;
     CheckEndian();
 }
 
@@ -88,7 +90,9 @@ Machine::~Machine()
 {
     delete[] mainMemory;
     if (tlb != NULL)
-        delete[] tlb;
+        {
+            delete[] tlb;
+        }
 }
 
 //----------------------------------------------------------------------
@@ -255,39 +259,52 @@ void Machine::TLBLoad(int vpn)
     if (!invalidExist)
         {
             int replacedTLB = 0;
-#ifdef TLB_LRU  // Least Recently Used
-            int earliestUsedTime = (1 << 30);
-            for (int i = 0; i < TLBSize; ++i)
+            switch (TLBReplaceStrategy)
                 {
-                    if (tlb[i].tValue < earliestUsedTime)
+                    case TLB_LRU:
                         {
-                            earliestUsedTime = tlb[i].tValue;
-                            replacedTLB = i;
+                            int earliestUsedTime = (1 << 30);
+                            for (int i = 0; i < TLBSize; ++i)
+                                {
+                                    if (tlb[i].tValue < earliestUsedTime)
+                                        {
+                                            earliestUsedTime = tlb[i].tValue;
+                                            replacedTLB = i;
+                                        }
+                                }
                         }
-                }
-#elif TLB_FIFO  // First In First Out
-            int esrliestCreatedTime = (1 << 30);
-            for (int i = 0; i < TLBSize; ++i)
-                {
-                    if (tlb[i].tValue < esrliestCreatedTime)
+                        break;
+                    case TLB_FIFO:
                         {
-                            esrliestCreatedTime = tlb[i].tValue;
-                            replacedTLB = i;
+                            int esrliestCreatedTime = (1 << 30);
+                            for (int i = 0; i < TLBSize; ++i)
+                                {
+                                    if (tlb[i].tValue < esrliestCreatedTime)
+                                        {
+                                            esrliestCreatedTime = tlb[i].tValue;
+                                            replacedTLB = i;
+                                        }
+                                }
+                            tlb[replacedTLB].tValue = machine->timeStamp;  // update created time
                         }
+                        break;
+                    // case TLB_LFU:
+                    //     {
+                    //         int minUsedCount = (1 << 30);
+                    //         for (int i = 0; i < TLBSize; ++i)
+                    //             {
+                    //                 if (tlb[i].tValue < minUsedCount)
+                    //                     {
+                    //                         minUsedCount = tlb[i].tValue;
+                    //                         replacedTLB = i;
+                    //                     }
+                    //             }
+                    //         tlb[replacedTLB].tValue = 0;  // initialize used count
+                    //     }
+                    //     break;
+                    default:
+                        ASSERT(false);  // unknow replacement strategy
                 }
-            tlb[replacedTLB].tValue = machine->timeStamp;  // update created time
-#elif TLB_LFU   // Least Frequently Used
-            int minUsedCount = (1 << 30);
-            for (int i = 0; i < TLBSize; ++i)
-                {
-                    if (tlb[i].tValue < minUsedCount)
-                        {
-                            minUsedCount = tlb[i].tValue;
-                            replacedTLB = i;
-                        }
-                }
-            tlb[replacedTLB].tValue = 0;  // initialize used count
-#endif
             tlb[replacedTLB].virtualPage = vpn;
             tlb[replacedTLB].physicalPage = physPage;
             tlb[replacedTLB].valid = true;
@@ -297,4 +314,10 @@ void Machine::TLBLoad(int vpn)
 int Machine::PageLoad(int vpn)
 {
     return 0;
+}
+
+void Machine::printTLBStat()
+{
+    printf("TLB hit: %d    TLB miss: %d    ", TLBHitCount, TLBMissCount);
+    printf("Hitting rate: %.5f\n", (float)TLBHitCount / (float)(TLBHitCount + TLBMissCount));
 }

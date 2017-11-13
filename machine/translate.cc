@@ -236,22 +236,28 @@ ExceptionType Machine::Translate(int virtAddr, int *physAddr, int size, bool wri
             for (entry = NULL, i = 0; i < TLBSize; i++)
                 if (tlb[i].valid && (tlb[i].virtualPage == vpn))
                     {
-                        printf("TLB hit!\n");
+                        TLBHitCount++;
                         entry = &tlb[i];  // FOUND!
-#ifdef TLB_LRU
-                        tlb[i].tValue = machine->timeStamp;  // update last used time
-#elif TLB_LFU
-                        tlb[i].tValue++;  // update used count
-#elif TLB_FIFO
-#else
-                        ASSERT(false);  // TLB replacement strategy not found
-#endif
+                        switch (machine->TLBReplaceStrategy)
+                            {
+                                case TLB_LRU:
+                                    {
+                                        tlb[i].tValue =
+                                            machine->timeStamp;  // update last used time
+                                    }
+                                    break;
+                                // case TLB_LFU:
+                                //     {
+                                //         tlb[i].tValue++;  // update used count
+                                //     }
+                                //     break;
+                            }
                         break;
                     }
 
             if (entry == NULL)
                 {  // not found
-                    printf("TLB miss!\n");
+                    TLBMissCount++;
                     DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
                     return PageFaultException;  // really, this is a TLB fault,
                                                 // the page may be in memory,

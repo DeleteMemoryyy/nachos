@@ -66,6 +66,9 @@ void ExceptionHandler(ExceptionType which)
                                 break;
                             case SC_Exit:
                                 {
+                                    printf("User program exit.\n");
+                                    machine->printTLBStat();
+                                    interrupt->Halt();
                                 }
                                 break;
                             case SC_Exec:

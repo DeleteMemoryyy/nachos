@@ -35,7 +35,9 @@
 #define NumPhysPages    128
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
-#define TLB_LRU
+#define TLB_LRU 0
+#define TLB_FIFO 1
+// #define TLB_LFU 2
 
 enum ExceptionType { NoException,           // Everything ok!
 		     SyscallException,      // A program executed a system call.
@@ -153,6 +155,8 @@ class Machine {
     void TLBLoad(int vpn);
     int PageLoad(int vpn);
 
+    void printTLBStat();
+
     // Data structures -- all of these are accessible to Nachos kernel code.
     // "public" for convenience.
     //
@@ -184,6 +188,7 @@ class Machine {
 
     TranslationEntry *tlb;		// this pointer should be considered 
 					// "read-only" to Nachos kernel code
+    int TLBReplaceStrategy;
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
@@ -194,6 +199,8 @@ class Machine {
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
     int timeStamp;              // timestamp for LRU replacement algorithm
+    int TLBHitCount;
+    int TLBMissCount;
 };
 
 extern void ExceptionHandler(ExceptionType which);
