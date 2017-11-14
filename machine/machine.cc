@@ -60,19 +60,29 @@ Machine::Machine(bool debug)
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++)
         mainMemory[i] = 0;
+    memStatusMap = new BitMap(NumPhysPages);
+
+    swapSpace = new char[SwapSize];
+    for (int i = 0; i < SwapSize; ++i)
+        swapSpace[i] = 0;
+    swapStatusMap = new BitMap(NumSwapPages);
+
+    PTReplaceStrategy = PT_FIFO;
 #ifdef USE_TLB
     printf("    Initializing TLB\n");
     printf("    TLB pages num: %d\n", TLBSize);
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
         tlb[i].valid = FALSE;
-    pageTable = NULL;
+    TLBReplaceStrategy = TLB_LRU;
 #else  // use linear page table
     printf("        TLB Not Used\n");
-
     tlb = NULL;
-    pageTable = NULL;
 #endif
+    pageTable = NULL;
+    swapPageTable = NULL;
+    execFile = NULL;
+    offsetVaddrToFile = 0;
 
     singleStep = debug;
     timeStamp = 0;
@@ -89,6 +99,9 @@ Machine::Machine(bool debug)
 Machine::~Machine()
 {
     delete[] mainMemory;
+    delete memStatusMap;
+    delete[] swapSpace;
+    delete swapStatusMap;
     if (tlb != NULL)
         {
             delete[] tlb;
@@ -220,18 +233,9 @@ void Machine::WriteRegister(int num, int value)
 
 void Machine::TLBMissHandler()
 {
-    unsigned int badVAddr = ReadRegister(BadVAddrReg);
-    unsigned int vpn = (unsigned)badVAddr / PageSize;
-    TLBLoad(vpn);
-}
-
-void Machine::PageFaultHandler()
-{
     int badVAddr = ReadRegister(BadVAddrReg);
-}
+    unsigned int vpn = (unsigned)badVAddr / PageSize;
 
-void Machine::TLBLoad(int vpn)
-{
     int physPage = 0;
     if (pageTable[vpn].valid)
         {
@@ -242,6 +246,20 @@ void Machine::TLBLoad(int vpn)
             physPage = PageLoad(vpn);
         }
 
+    switch (PTReplaceStrategy)
+        {
+            case PT_LRU:
+                {
+                    pageTable[vpn].tValue = machine->timeStamp;  // update last used time
+                }
+                break;
+                // case PT_LFU:
+                //     {
+                //         pageTable[vpn].tValue++;  // update used count
+                //     }
+                //     break;
+        }
+
     bool invalidExist = false;
     for (int i = 0; i < TLBSize; ++i)
         {
@@ -250,6 +268,8 @@ void Machine::TLBLoad(int vpn)
                     tlb[i].virtualPage = vpn;
                     tlb[i].physicalPage = physPage;
                     tlb[i].valid = true;
+                    tlb[i].dirty = pageTable[vpn].dirty;
+                    tlb[i].readOnly = pageTable[vpn].readOnly;
 
                     invalidExist = true;
                     break;
@@ -308,12 +328,97 @@ void Machine::TLBLoad(int vpn)
             tlb[replacedTLB].virtualPage = vpn;
             tlb[replacedTLB].physicalPage = physPage;
             tlb[replacedTLB].valid = true;
+            pageTable[replacedTLB].dirty =
+                tlb[replacedTLB].dirty;  // update dirty bit in page table
         }
+}
+
+void Machine::PageFaultHandler()
+{
+    int badVAddr = ReadRegister(BadVAddrReg);
+    unsigned int vpn = (unsigned)badVAddr / PageSize;
+    PageLoad(vpn);
 }
 
 int Machine::PageLoad(int vpn)
 {
-    return 0;
+    int physPage = memStatusMap->Find();
+    if (physPage == -1)  // physical space has been used up, find a page to swap out
+        {
+            int swapOutPage = -1;
+            int earliestUsedTime = (1 << 30);
+            for (int i = 0; i < pageTableSize; ++i)
+                {
+                    if (pageTable[i].valid && pageTable[i].tValue < earliestUsedTime)
+                        {
+                            earliestUsedTime = pageTable[i].tValue;
+                            swapOutPage = i;
+                        }
+                }
+            ASSERT(swapOutPage >= 0);
+            int swapSpacePage = swapStatusMap->Find();
+            ASSERT(swapSpacePage >= 0);
+            physPage = pageTable[swapOutPage].physicalPage;
+            int swapOutAddrStart = physPage * PageSize, swapAddrStart = swapSpacePage * PageSize;
+            for (int i = 0; i < PageSize; ++i)
+                swapSpace[swapAddrStart + i] = mainMemory[swapOutAddrStart + i];
+            swapPageTable[swapOutPage].virtualPage = swapOutPage;
+            swapPageTable[swapOutPage].physicalPage = swapSpacePage;
+            swapPageTable[swapOutPage].valid = true;
+            swapPageTable[swapOutPage].dirty = pageTable[swapOutPage].dirty;
+            swapPageTable[swapOutPage].readOnly = pageTable[swapOutPage].readOnly;
+            pageTable[swapOutPage].valid = false;
+
+            if (tlb != NULL)
+                {
+                    for (int i = 0; i < TLBSize; ++i)
+                        if (tlb[i].valid && tlb[i].virtualPage == swapOutPage)
+                            {
+                                tlb[i].valid = false;
+                                break;
+                            }
+                }
+
+            printf("Page Swap Out: vpn=%d, ppn=%d, spn=%d\n", swapOutPage, physPage, swapSpacePage);
+        }
+
+    int physAddrStart = physPage * PageSize;
+    if (swapPageTable[vpn].valid)  // file in swap space
+        {
+            int swapAddrStart = swapPageTable[vpn].physicalPage * PageSize;
+            for (int i = 0; i < PageSize; ++i)
+                mainMemory[physAddrStart + i] = swapSpace[swapAddrStart + i];
+            pageTable[vpn].dirty = swapPageTable[vpn].dirty;
+            pageTable[vpn].readOnly = swapPageTable[vpn].readOnly;
+            swapPageTable[vpn].valid = false;
+            swapStatusMap->Clear(swapPageTable[vpn].physicalPage);
+            printf("Page load from swap space: vpn=%d, ppn=%d, spn=%d\n", vpn, physPage,
+                   swapPageTable[vpn].physicalPage);
+        }
+    else  // file in disk
+        {
+            ASSERT(execFile != NULL);
+            execFile->ReadAt(&(mainMemory[physAddrStart]), PageSize,
+                             (char *)(vpn * PageSize + offsetVaddrToFile));
+            pageTable[vpn].dirty = false;
+            pageTable[vpn].readOnly =
+                (vpn >= readOnlyPageStart && vpn < readOnlyPageEnd) ? true : false;
+            printf("Page load from disk: vpn=%d, ppn=%d\n", vpn, physPage);
+        }
+    pageTable[vpn].virtualPage = vpn;
+    pageTable[vpn].physicalPage = physPage;
+    pageTable[vpn].valid = true;
+
+    switch (PTReplaceStrategy)
+        {
+            case PT_FIFO:
+                {
+                    pageTable[vpn].tValue = timeStamp;
+                }
+                break;
+        }
+
+    return physPage;
 }
 
 void Machine::printTLBStat()

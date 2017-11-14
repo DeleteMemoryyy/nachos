@@ -41,6 +41,7 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+    printf("File CLosed!!!\n");
     delete hdr;
 }
 

@@ -51,6 +51,7 @@
 void ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
+    // printf("Exception: %d %d\n", which, type);
 
     switch (which)
         {

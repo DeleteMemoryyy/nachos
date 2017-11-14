@@ -229,6 +229,19 @@ ExceptionType Machine::Translate(int virtAddr, int *physAddr, int size, bool wri
                           pageTableSize);
                     return PageFaultException;
                 }
+            switch (machine->PTReplaceStrategy)
+                {
+                    case PT_LRU:
+                        {
+                            pageTable[vpn].tValue = machine->timeStamp;  // update last used time
+                        }
+                        break;
+                        // case PT_LFU:
+                        //     {
+                        //         pageTable[vpn].tValue++;  // update used count
+                        //     }
+                        //     break;
+                }
             entry = &pageTable[vpn];
         }
     else
@@ -246,11 +259,11 @@ ExceptionType Machine::Translate(int virtAddr, int *physAddr, int size, bool wri
                                             machine->timeStamp;  // update last used time
                                     }
                                     break;
-                                // case TLB_LFU:
-                                //     {
-                                //         tlb[i].tValue++;  // update used count
-                                //     }
-                                //     break;
+                                    // case TLB_LFU:
+                                    //     {
+                                    //         tlb[i].tValue++;  // update used count
+                                    //     }
+                                    //     break;
                             }
                         break;
                     }

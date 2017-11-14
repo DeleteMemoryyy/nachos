@@ -25,6 +25,7 @@
 #include "utility.h"
 #include "translate.h"
 #include "disk.h"
+#include "bitmap.h"
 
 // Definitions related to the size, and format of user memory
 
@@ -32,12 +33,16 @@
 					// the disk sector size, for
 					// simplicity
 
-#define NumPhysPages    128
+#define NumPhysPages    32
 #define MemorySize 	(NumPhysPages * PageSize)
+#define NumSwapPages 1024
+#define SwapSize  (NumSwapPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 #define TLB_LRU 0
 #define TLB_FIFO 1
 // #define TLB_LFU 2
+#define PT_LRU 0
+#define PT_FIFO 1
 
 enum ExceptionType { NoException,           // Everything ok!
 		     SyscallException,      // A program executed a system call.
@@ -152,7 +157,6 @@ class Machine {
     void TLBMissHandler();
     void PageFaultHandler();
 
-    void TLBLoad(int vpn);
     int PageLoad(int vpn);
 
     void printTLBStat();
@@ -165,33 +169,45 @@ class Machine {
 
     char *mainMemory;		// physical memory to store user program,
 				// code and data, while executing
-    int registers[NumTotalRegs]; // CPU registers, for executing user programs
+    BitMap *memStatusMap;   // bitmap to physical pages status
+    char *swapSpace;    // swap space in disk
+    BitMap *swapStatusMap;  // bitmap to swap space
+    int registers[NumTotalRegs];  // CPU registers, for executing user programs
 
 
-// NOTE: the hardware translation of virtual addresses in the user program
-// to physical addresses (relative to the beginning of "mainMemory")
-// can be controlled by one of:
-//	a traditional linear page table
-//  	a software-loaded translation lookaside buffer (tlb) -- a cache of 
-//	  mappings of virtual page #'s to physical page #'s
-//
-// If "tlb" is NULL, the linear page table is used
-// If "tlb" is non-NULL, the Nachos kernel is responsible for managing
-//	the contents of the TLB.  But the kernel can use any data structure
-//	it wants (eg, segmented paging) for handling TLB cache misses.
-// 
-// For simplicity, both the page table pointer and the TLB pointer are
-// public.  However, while there can be multiple page tables (one per address
-// space, stored in memory), there is only one TLB (implemented in hardware).
-// Thus the TLB pointer should be considered as *read-only*, although 
-// the contents of the TLB are free to be modified by the kernel software.
+    // NOTE: the hardware translation of virtual addresses in the user program
+    // to physical addresses (relative to the beginning of "mainMemory")
+    // can be controlled by one of:
+    //	a traditional linear page table
+    //  	a software-loaded translation lookaside buffer (tlb) -- a cache of
+    //	  mappings of virtual page #'s to physical page #'s
+    //
+    // If "tlb" is NULL, the linear page table is used
+    // If "tlb" is non-NULL, the Nachos kernel is responsible for managing
+    //	the contents of the TLB.  But the kernel can use any data structure
+    //	it wants (eg, segmented paging) for handling TLB cache misses.
+    //
+    // For simplicity, both the page table pointer and the TLB pointer are
+    // public.  However, while there can be multiple page tables (one per address
+    // space, stored in memory), there is only one TLB (implemented in hardware).
+    // Thus the TLB pointer should be considered as *read-only*, although
+    // the contents of the TLB are free to be modified by the kernel software.
 
     TranslationEntry *tlb;		// this pointer should be considered 
 					// "read-only" to Nachos kernel code
     int TLBReplaceStrategy;
+    int PTReplaceStrategy;
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
+
+    TranslationEntry *swapPageTable;
+    unsigned int swapPageTableSize;
+
+    OpenFile *execFile;
+    int offsetVaddrToFile;
+    int readOnlyPageStart;
+    int readOnlyPageEnd;
 
   private:
     bool singleStep;		// drop back into the debugger after each
@@ -199,6 +215,7 @@ class Machine {
     int runUntilTime;		// drop back into the debugger when simulated
 				// time reaches this value
     int timeStamp;              // timestamp for LRU replacement algorithm
+
     int TLBHitCount;
     int TLBMissCount;
 };

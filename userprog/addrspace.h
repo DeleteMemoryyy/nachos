@@ -37,6 +37,11 @@ class AddrSpace
                                   // for now!
     unsigned int numPages;        // Number of pages in the virtual
                                   // address space
+    TranslationEntry *swapPageTable;  // page table for swap space
+    OpenFile *execFile;   // opened exec
+    int offsetVaddrToFile; // offset from virtual address to address in file
+    int readOnlyPageStart;
+    int readOnlyPageEnd;
 };
 
 #endif  // ADDRSPACE_H
