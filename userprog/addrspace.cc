@@ -103,8 +103,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
     offsetVaddrToFile = noffH.code.inFileAddr - noffH.code.virtualAddr;
 
     readOnlyPageStart = (unsigned int)noffH.code.virtualAddr / PageSize;
-    // readOnlyPageEnd = (((unsigned int)noffH.code.virtualAddr + noffH.code.size - 1) / PageSize) + 1;
-    readOnlyPageEnd = 0;    // unknow read only segment positon
+    // readOnlyPageEnd = (((unsigned int)noffH.code.virtualAddr + noffH.code.size - 1) / PageSize) +
+    // 1;
+    readOnlyPageEnd = 0;  // unknow read only segment positon
 
     pageTable = new TranslationEntry[numPages];
     swapPageTable = new TranslationEntry[numPages];
@@ -131,7 +132,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 AddrSpace::~AddrSpace()
 {
-
     // write back dirty pages
 
     // recycle used physical memoryF
@@ -189,11 +189,17 @@ void AddrSpace::InitRegisters()
 
 void AddrSpace::SaveState()
 {
-    for (int i = 0; i < TLBSize; ++i)  // clear TLB
+    if (machine->tlb != NULL)
         {
-            // if (machine->tlb[i].valid)
-            //     machine->pageTable[machine->tlb[i].virtualPage].dirty = machine->tlb[i].dirty;
-            machine->tlb[i].valid = false;
+            for (int i = 0; i < TLBSize; ++i)  // clear TLB
+                {
+                    if (machine->tlb[i].valid)
+                        {
+                            machine->pageTable[machine->tlb[i].virtualPage].dirty =
+                                machine->tlb[i].dirty;
+                            machine->tlb[i].valid = false;
+                        }
+                }
         }
 }
 

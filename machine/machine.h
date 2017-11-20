@@ -158,6 +158,7 @@ class Machine {
     void PageFaultHandler();
 
     int PageLoad(int vpn);
+    void SwapOut();
 
     void printTLBStat();
 

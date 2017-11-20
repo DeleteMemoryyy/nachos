@@ -43,4 +43,11 @@ class TranslationEntry {
 			// page is modified.
 };
 
+class InvertedTranslationEntry:public TranslationEntry
+{
+  public:
+    int uid;
+    int tid;
+};
+
 #endif

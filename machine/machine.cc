@@ -270,7 +270,6 @@ void Machine::TLBMissHandler()
                     tlb[i].valid = true;
                     tlb[i].dirty = pageTable[vpn].dirty;
                     tlb[i].readOnly = pageTable[vpn].readOnly;
-
                     invalidExist = true;
                     break;
                 }
@@ -425,4 +424,28 @@ void Machine::printTLBStat()
 {
     printf("TLB hit: %d    TLB miss: %d    ", TLBHitCount, TLBMissCount);
     printf("Hitting rate: %.5f\n", (float)TLBHitCount / (float)(TLBHitCount + TLBMissCount));
+}
+
+void Machine::SwapOut()
+{
+    for (int i = 0; i < pageTableSize; ++i)
+        {
+            if (pageTable[i].valid)
+                {
+                    int swapSpacePage = swapStatusMap->Find();
+                    ASSERT(swapSpacePage >= 0);
+                    int physPage = pageTable[i].physicalPage;
+                    int swapOutAddrStart = physPage * PageSize,
+                        swapAddrStart = swapSpacePage * PageSize;
+                    for (int i = 0; i < PageSize; ++i)
+                        swapSpace[swapAddrStart + i] = mainMemory[swapOutAddrStart + i];
+                    swapPageTable[i].virtualPage = swapOutPage;
+                    swapPageTable[i].physicalPage = swapSpacePage;
+                    swapPageTable[i].valid = true;
+                    swapPageTable[i].dirty = pageTable[i].dirty;
+                    swapPageTable[i].readOnly = pageTable[i].readOnly;
+                    pageTable[i].valid = false;
+                    memStatusMap.Clear(physPage);
+                }
+        }
 }
