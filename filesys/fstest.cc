@@ -109,18 +109,21 @@ void Print(char *name)
     //	  PerformanceTest -- overall control, and print out performance #'s
     //----------------------------------------------------------------------
 
-#define FileName "TestFile"
+#define FileName "/TestFile"
 #define Contents "1234567890"
-#define ContentSize strlen(Contents)
-#define FileSize ((int)(ContentSize * 100))
+// #define ContentSize strlen(Contents)
+#define ContentSize 100
+#define FileSize ((int)(ContentSize * 10))
 
 static void FileWrite()
 {
     OpenFile *openFile;
     int i, numBytes;
 
+    char *contentBuf = new char[ContentSize];
+
     printf("Sequential write of %d byte file, in %d byte chunks\n", FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, FileSize))
+    if (!fileSystem->Create(FileName, 0))
         {
             printf("Perf test: can't create %s\n", FileName);
             return;
@@ -133,7 +136,7 @@ static void FileWrite()
         }
     for (i = 0; i < FileSize; i += ContentSize)
         {
-            numBytes = openFile->Write(Contents, ContentSize);
+            numBytes = openFile->Write(contentBuf, ContentSize);
             if (numBytes < 10)
                 {
                     printf("Perf test: unable to write %s\n", FileName);
@@ -142,6 +145,7 @@ static void FileWrite()
                 }
         }
     delete openFile;  // close file
+    delete contentBuf;
     printf("Sequential write success! %d byte file, in %d byte chunks\n", FileSize, ContentSize);
 }
 

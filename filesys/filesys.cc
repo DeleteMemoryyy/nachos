@@ -56,12 +56,10 @@
 // sectors, so that they can be located on boot-up.
 #define FreeMapSector 0
 #define DirectorySector 1
-
 // Initial file sizes for the bitmap and directory; until the file system
 // supports extensible files, the directory size sets the maximum number
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize (NumSectors / BitsInByte)
-#define NumDirEntries 10
 #define DirectoryFileSize (sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -80,6 +78,8 @@
 FileSystem::FileSystem(bool format)
 {
     DEBUG('f', "Initializing the file system.\n");
+    referenceCount = new int[NumSectors];
+    memset(referenceCount, 0, sizeof(int) * NumSectors);
     if (format)
         {
             BitMap *freeMap = new BitMap(NumSectors);
@@ -153,6 +153,11 @@ FileSystem::FileSystem(bool format)
         }
 }
 
+FileSystem::~FileSystem()
+{
+    delete[] referenceCount;
+}
+
 //----------------------------------------------------------------------
 // FileSystem::Create
 // 	Create a file in the Nachos file system (similar to UNIX create).
@@ -189,6 +194,9 @@ bool FileSystem::Create(char *name, int initialSize)
     FileHeader *hdr;
     int sector;
     bool success;
+
+    if (initialSize <= 1)
+        initialSize = 1;
 
     DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
 
@@ -250,6 +258,7 @@ OpenFile *FileSystem::Open(char *name)
 
     DEBUG('f', "Opening file %s\n", name);
     directory->FetchFrom(directoryFile);
+    ASSERT(*name == '/');
     sector = directory->Find(name);
     if (sector >= 0)
         openFile = new OpenFile(sector);  // name was found in directory
@@ -288,15 +297,21 @@ bool FileSystem::Remove(char *name)
             delete directory;
             return FALSE;  // file not found
         }
+    if (referenceCount[sector] > 0)
+        {
+            printf("Delete file false, being opened by other thread\n");
+            delete directory;
+            return FALSE;  // file not found
+        }
     fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
 
     freeMap = new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
 
+    directory->Remove(name, freeMap);
     fileHdr->Deallocate(freeMap);  // remove data blocks
     freeMap->Clear(sector);        // remove header block
-    directory->Remove(name);
 
     freeMap->WriteBack(freeMapFile);      // flush to disk
     directory->WriteBack(directoryFile);  // flush to disk

@@ -80,10 +80,6 @@ class Lock
     void Acquire();  // these are the only operations on a lock
     void Release();  // they are both *atomic*
 
-    inline bool isHeldByCurrentThread(Thread *curThread)  // true if the current thread
-    {
-        return holder == curThread;
-    }
     // holds this lock.  Useful for
     // checking in Release, and in
     // Condition variable ops below.
@@ -91,7 +87,6 @@ class Lock
   private:
     char *name;  // for debugging
     Semaphore *semphore;
-    Thread *holder;
 };
 
 // The following class defines a "condition variable".  A condition

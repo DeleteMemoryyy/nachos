@@ -113,6 +113,57 @@ void FileHeader::Deallocate(BitMap *freeMap)
         }
 }
 
+bool FileHeader::ExtentAllocate(BitMap *freeMap, int fileSize)
+{
+    int extBytes = fileSize - (SectorSize - (numBytes % SectorSize));
+    numBytes += fileSize;
+    if (extBytes <= 0)
+        {
+            return TRUE;
+        }
+    int extNumSectors = divRoundUp(extBytes, SectorSize);
+    int newNumSectors = extNumSectors + numSectors;
+    for (int vSector = numSectors; vSector < newNumSectors; ++vSector)
+        {
+            if (vSector < NumPrimarySector)
+                {
+                    int new_sector = freeMap->Find();
+                    if (new_sector == -1)
+                        return FALSE;
+                    primarySectors[vSector] = new_sector;
+                }
+            else
+                {
+                    int restNumSectors = vSector - NumPrimarySector;
+                    int numSecondaryIndex = restNumSectors / NumDirectPerSector;
+                    int *writtenSector = new int[NumDirectPerSector];
+                    if (restNumSectors % NumDirectPerSector == 0)
+                        {
+                            int new_sector = freeMap->Find();
+                            if (new_sector == -1)
+                                return FALSE;
+                            secondarySectors[restNumSectors] = new_sector;
+                        }
+                    else
+                        {
+                            freeMap->Test(numSecondaryIndex);
+                            synchDisk->ReadSector(secondarySectors[numSecondaryIndex],
+                                                  (char *)writtenSector);
+                        }
+                    int new_sector = freeMap->Find();
+                    if (new_sector == -1)
+                        return FALSE;
+                    writtenSector[restNumSectors - NumDirectPerSector * numSecondaryIndex] =
+                        new_sector;
+                    synchDisk->WriteSector(secondarySectors[numSecondaryIndex],
+                                           (char *)writtenSector);
+                    delete[] writtenSector;
+                }
+        }
+    numSectors = newNumSectors;
+    return TRUE;
+}
+
 //----------------------------------------------------------------------
 // FileHeader::FetchFrom
 // 	Fetch contents of file header from disk.

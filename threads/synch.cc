@@ -100,7 +100,6 @@ Lock::Lock(char *debugName)
 {
     name = debugName;
     semphore = new Semaphore("semphore in lock", 1);
-    holder = NULL;
 }
 
 Lock::~Lock()
@@ -112,14 +111,12 @@ Lock::~Lock()
 void Lock::Acquire()
 {
     semphore->P();
-    holder = currentThread;
 }
 
 void Lock::Release()
 {
     // if (isHeldByCurrentThread())
         {
-            holder = NULL;
             semphore->V();
         }
 }

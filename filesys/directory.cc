@@ -104,11 +104,56 @@ int Directory::FindIndex(char *name)
 
 int Directory::Find(char *name)
 {
-    int i = FindIndex(name);
+    char *nameBuf = new char[FileNameMaxLen + 1];
+    memset(nameBuf, 0, sizeof(char) * (FileNameMaxLen + 1));
+    int nameLenThisLevel = 0, nameLenNext = 0;
+    char *nameCur = name;
 
-    if (i != -1)
-        return table[i].sector;
-    return -1;
+    // remove this level name
+    while (*nameCur != '/')
+        {
+            ASSERT(*nameCur != 0);
+            nameLenThisLevel++;
+            nameCur++;
+        }
+    nameLenThisLevel++;
+    nameCur++;
+
+    // get next level name
+    while (*nameCur != 0)
+        {
+            nameBuf[nameLenNext] = *nameCur;
+            nameLenNext++;
+            nameCur++;
+            if (*(nameCur - 1) == '/')
+                break;
+        }
+
+    if (*nameCur == 0)  // is last level
+        {
+            delete[] nameBuf;
+            int idx = FindIndex(name + nameLenThisLevel);
+            if (idx != -1)
+                return table[idx].sector;
+            return -1;
+        }
+    else  // recursive find
+        {
+            int idx = FindIndex(nameBuf);
+            delete[] nameBuf;
+            if (idx != -1)
+                {
+                    ASSERT(table[idx].type == 0);
+                    OpenFile *nextDirectoryFile = new OpenFile(table[idx].sector);
+                    Directory *nextDirectory = new Directory(NumDirEntries);
+                    nextDirectory->FetchFrom(nextDirectoryFile);
+                    int result = nextDirectory->Find(name + nameLenThisLevel);
+                    delete nextDirectory;
+                    delete nextDirectoryFile;
+                    return result;
+                }
+            return FALSE;
+        }
 }
 
 //----------------------------------------------------------------------
@@ -124,18 +169,71 @@ int Directory::Find(char *name)
 
 bool Directory::Add(char *name, int newSector)
 {
-    if (FindIndex(name) != -1)
-        return FALSE;
+    char *nameBuf = new char[FileNameMaxLen + 1];
+    memset(nameBuf, 0, sizeof(char) * (FileNameMaxLen + 1));
+    int nameLenThisLevel = 0, nameLenNext = 0;
+    char *nameCur = name;
 
-    for (int i = 0; i < tableSize; i++)
-        if (!table[i].inUse)
-            {
-                table[i].inUse = TRUE;
-                strncpy(table[i].name, name, FileNameMaxLen);
-                table[i].sector = newSector;
-                return TRUE;
-            }
-    return FALSE;  // no space.  Fix when we have extensible files.
+    // remove this level name
+    while (*nameCur != '/')
+        {
+            ASSERT(*nameCur != 0);
+            nameLenThisLevel++;
+            nameCur++;
+        }
+    nameLenThisLevel++;
+    nameCur++;
+
+    // get next level name
+    while (*nameCur != 0)
+        {
+            nameBuf[nameLenNext] = *nameCur;
+            nameLenNext++;
+            nameCur++;
+            if (*(nameCur - 1) == '/')
+                break;
+        }
+
+    if (*nameCur == 0)  // is last level
+        {
+            if (FindIndex(nameBuf) != -1)
+                {
+                    delete[] nameBuf;
+                    return FALSE;
+                }
+            for (int i = 0; i < tableSize; i++)
+                if (!table[i].inUse)
+                    {
+                        table[i].inUse = TRUE;
+                        strncpy(table[i].name, nameBuf, FileNameMaxLen);
+                        if (nameBuf[nameLenNext - 1] == '/')
+                            table[i].type = 0;
+                        else
+                            table[i].type = 1;
+                        table[i].sector = newSector;
+                        delete[] nameBuf;
+                        return TRUE;
+                    }
+            delete[] nameBuf;
+            return FALSE;  // no space.  Fix when we have extensible files.
+        }
+    else  // recursive find
+        {
+            int idx = FindIndex(nameBuf);
+            delete[] nameBuf;
+            if (idx != -1)
+                {
+                    ASSERT(table[idx].type == 0);
+                    OpenFile *nextDirectoryFile = new OpenFile(table[idx].sector);
+                    Directory *nextDirectory = new Directory(NumDirEntries);
+                    nextDirectory->FetchFrom(nextDirectoryFile);
+                    bool result = nextDirectory->Add(name + nameLenThisLevel, newSector);
+                    delete nextDirectory;
+                    delete nextDirectoryFile;
+                    return result;
+                }
+            return FALSE;
+        }
 }
 
 //----------------------------------------------------------------------
@@ -146,7 +244,7 @@ bool Directory::Add(char *name, int newSector)
 //	"name" -- the file name to be removed
 //----------------------------------------------------------------------
 
-bool Directory::Remove(char *name)
+bool Directory::Remove(char *name, BitMap *freeMap)
 {
     int i = FindIndex(name);
 
@@ -154,7 +252,95 @@ bool Directory::Remove(char *name)
         return FALSE;  // name not in directory
     table[i].inUse = FALSE;
     return TRUE;
+
+    char *nameBuf = new char[FileNameMaxLen + 1];
+    memset(nameBuf, 0, sizeof(char) * (FileNameMaxLen + 1));
+    int nameLenThisLevel = 0, nameLenNext = 0;
+    char *nameCur = name;
+
+    // remove this level name
+    while (*nameCur != '/')
+        {
+            ASSERT(*nameCur != 0);
+            nameLenThisLevel++;
+            nameCur++;
+        }
+    nameLenThisLevel++;
+    nameCur++;
+
+    // get next level name
+    while (*nameCur != 0)
+        {
+            nameBuf[nameLenNext] = *nameCur;
+            nameLenNext++;
+            nameCur++;
+            if (*(nameCur - 1) == '/')
+                break;
+        }
+
+    if (*nameCur == 0)  // is last level
+        {
+            delete[] nameBuf;
+            int idx = FindIndex(name + nameLenThisLevel);
+            if (idx == -1)
+                {
+                    return FALSE;
+                }
+            if (table[idx].type == 0)
+                {
+                    OpenFile *deleteDirectoryFile = new OpenFile(table[idx].sector);
+                    Directory *deleteDirectory = new Directory(NumDirEntries);
+                    deleteDirectory->FetchFrom(deleteDirectoryFile);
+                    deleteDirectory->RemoveAllFiles(freeMap);
+                    delete deleteDirectory;
+                    delete deleteDirectoryFile;
+                }
+            table[idx].inUse = FALSE;
+            return TRUE;
+        }
+    else
+        {
+            int idx = FindIndex(nameBuf);
+            if (idx != -1)
+                {
+                    ASSERT(table[idx].type == 0);
+                    OpenFile *nextDirectoryFile = new OpenFile(table[idx].type);
+                    Directory *nextDirectory = new Directory(NumDirEntries);
+                    nextDirectory->FetchFrom(nextDirectoryFile);
+                    bool result = nextDirectory->Remove(name + nameLenThisLevel, freeMap);
+                    delete nextDirectory;
+                    delete nextDirectoryFile;
+                    delete[] nameBuf;
+                    return result;
+                }
+        }
 }
+
+void Directory::RemoveAllFiles(BitMap *freeMap)
+{
+    if (fileSystem != NULL)
+        for (int i = 0; i < tableSize; ++i)
+            {
+                if (table[i].inUse && fileSystem->referenceCount[table[i].sector] == 0)
+                    {
+                        if (table[i].type == 0)
+                            {
+                                OpenFile *deleteDirectoryFile = new OpenFile(table[i].sector);
+                                Directory *deleteDirectory = new Directory(NumDirEntries);
+                                deleteDirectory->FetchFrom(deleteDirectoryFile);
+                                deleteDirectory->RemoveAllFiles(freeMap);
+                                delete deleteDirectory;
+                                delete deleteDirectoryFile;
+                            }
+                        FileHeader *deleteHdr = new FileHeader;
+                        deleteHdr->FetchFrom(table[i].sector);
+                        deleteHdr->Deallocate(freeMap);
+                        freeMap->Clear(table[i].sector);
+                        delete deleteHdr;
+                    }
+            }
+}
+
 
 //----------------------------------------------------------------------
 // Directory::List

@@ -18,9 +18,12 @@
 #define DIRECTORY_H
 
 #include "openfile.h"
+#include "system.h"
+#include "bitmap.h"
 
 #define FileNameMaxLen 		100	// for simplicity, we assume 
 					// file names are <= 9 characters long
+#define NumDirEntries 10
 
 // The following class defines a "directory entry", representing a file
 // in the directory.  Each entry gives the name of the file, and where
@@ -65,7 +68,9 @@ class Directory {
 
     bool Add(char *name, int newSector);  // Add a file name into the directory
 
-    bool Remove(char *name);		// Remove a file from the directory
+    bool Remove(char *name, BitMap *freeMap);		// Remove a file from the directory
+
+    void RemoveAllFiles(BitMap *freeMap);  // Remove all files under this directory
 
     void List();			// Print the names of all the files
 					//  in the directory
