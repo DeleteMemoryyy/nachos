@@ -117,7 +117,7 @@ void Lock::Acquire()
 
 void Lock::Release()
 {
-    if (isHeldByCurrentThread())
+    // if (isHeldByCurrentThread())
         {
             holder = NULL;
             semphore->V();
@@ -141,7 +141,7 @@ Condition::~Condition()
 
 void Condition::Wait(Lock *conditionLock)
 {
-    ASSERT(conditionLock->isHeldByCurrentThread());
+    // ASSERT(conditionLock->isHeldByCurrentThread());
     conditionLock->Release();
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -156,7 +156,7 @@ void Condition::Wait(Lock *conditionLock)
 
 void Condition::Signal(Lock *conditionLock)
 {
-    ASSERT(conditionLock->isHeldByCurrentThread());
+    // ASSERT(conditionLock->isHeldByCurrentThread());
 
     Thread *thread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -170,7 +170,7 @@ void Condition::Signal(Lock *conditionLock)
 
 void Condition::Broadcast(Lock *conditionLock)
 {
-    ASSERT(conditionLock->isHeldByCurrentThread());
+    // ASSERT(conditionLock->isHeldByCurrentThread());
 
     Thread *thread;
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
@@ -237,7 +237,7 @@ RWLock::~RWLock()
 
 void RWLock::DownRead(Lock *rwcLock)
 {
-    ASSERT(rwcLock->isHeldByCurrentThread());
+    // ASSERT(rwcLock->isHeldByCurrentThread());
     while (writerCount > 0)
         {
             waitingReader++;
@@ -249,7 +249,7 @@ void RWLock::DownRead(Lock *rwcLock)
 
 void RWLock::UpRead(Lock *rwcLock)
 {
-    ASSERT(rwcLock->isHeldByCurrentThread());
+    // ASSERT(rwcLock->isHeldByCurrentThread());
     readerCount--;
     if (readerCount == 0 && writerCount == 0)
         readyToWrite->Signal(rwcLock);
@@ -257,7 +257,7 @@ void RWLock::UpRead(Lock *rwcLock)
 
 void RWLock::DownWrite(Lock *rwcLock)
 {
-    ASSERT(rwcLock->isHeldByCurrentThread());
+    // ASSERT(rwcLock->isHeldByCurrentThread());
     while (readerCount > 0 || writerCount > 0 || waitingReader > 0)
         readyToWrite->Wait(rwcLock);
     writerCount++;
@@ -265,7 +265,7 @@ void RWLock::DownWrite(Lock *rwcLock)
 
 void RWLock::UpWrite(Lock *rwcLock)
 {
-    ASSERT(rwcLock->isHeldByCurrentThread());
+    // ASSERT(rwcLock->isHeldByCurrentThread());
     writerCount--;
     if (waitingReader > 0)
         readyToRead->Broadcast(rwcLock);

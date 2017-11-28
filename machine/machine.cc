@@ -437,15 +437,15 @@ void Machine::SwapOut()
                     int physPage = pageTable[i].physicalPage;
                     int swapOutAddrStart = physPage * PageSize,
                         swapAddrStart = swapSpacePage * PageSize;
-                    for (int i = 0; i < PageSize; ++i)
-                        swapSpace[swapAddrStart + i] = mainMemory[swapOutAddrStart + i];
-                    swapPageTable[i].virtualPage = swapOutPage;
+                    for (int j = 0; j < PageSize; ++j)
+                        swapSpace[swapAddrStart + j] = mainMemory[swapOutAddrStart + j];
+                    swapPageTable[i].virtualPage = i;
                     swapPageTable[i].physicalPage = swapSpacePage;
                     swapPageTable[i].valid = true;
                     swapPageTable[i].dirty = pageTable[i].dirty;
                     swapPageTable[i].readOnly = pageTable[i].readOnly;
                     pageTable[i].valid = false;
-                    memStatusMap.Clear(physPage);
+                    memStatusMap->Clear(physPage);
                 }
         }
 }

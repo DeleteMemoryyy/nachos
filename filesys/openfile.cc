@@ -28,9 +28,11 @@
 //----------------------------------------------------------------------
 
 OpenFile::OpenFile(int sector)
-{ 
+{
+    printf("File opened!\n");
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
+    hdrSector = sector;
     seekPosition = 0;
 }
 
@@ -41,7 +43,7 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
-    printf("File CLosed!!!\n");
+    printf("File cLosed!\n");
     delete hdr;
 }
 
@@ -77,6 +79,8 @@ OpenFile::Read(char *into, int numBytes)
 {
    int result = ReadAt(into, numBytes, seekPosition);
    seekPosition += result;
+   hdr->UpdateLastUsedTime();
+   hdr->WriteBack(hdrSector);
    return result;
 }
 
@@ -85,6 +89,9 @@ OpenFile::Write(char *into, int numBytes)
 {
    int result = WriteAt(into, numBytes, seekPosition);
    seekPosition += result;
+   hdr->UpdateLastUsedTime();
+   hdr->UpdateLastModifiedTime();
+   hdr->WriteBack(hdrSector);
    return result;
 }
 
