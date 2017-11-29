@@ -231,6 +231,16 @@ void Machine::WriteRegister(int num, int value)
     registers[num] = value;
 }
 
+void Machine::IncreasePC()
+{
+    // save current PC
+    WriteRegister(PrevPCReg, ReadRegister(PCReg));
+    // increase PC
+    WriteRegister(PCReg, ReadRegister(PCReg) + 4);
+    // increase NextPC
+    WriteRegister(NextPCReg, ReadRegister(NextPCReg) + 4);
+}
+
 void Machine::TLBMissHandler()
 {
     int badVAddr = ReadRegister(BadVAddrReg);

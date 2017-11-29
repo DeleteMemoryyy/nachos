@@ -35,7 +35,7 @@ OpenFile::OpenFile(int sector)
     hdr->FetchFrom(sector);
     hdrSector = sector;
     seekPosition = 0;
-    printf("File opened!\n");
+    // printf("File opened!\n");
 }
 
 //----------------------------------------------------------------------
@@ -49,7 +49,7 @@ OpenFile::~OpenFile()
     delete hdr;
     if (fileSystem != NULL)
         fileSystem->referenceCount[hdrSector]--;
-    printf("File cLosed!\n");
+    // printf("File cLosed!\n");
 }
 
 //----------------------------------------------------------------------

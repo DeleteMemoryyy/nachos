@@ -44,4 +44,10 @@ class AddrSpace
     int readOnlyPageEnd;
 };
 
+struct AddrSpacePC
+{
+    AddrSpace *space;
+    int PC;
+};
+
 #endif  // ADDRSPACE_H

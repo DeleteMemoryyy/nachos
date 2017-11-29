@@ -54,6 +54,8 @@
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
 #define StackSize (4 * 1024)  // in words
 
+#define MaxChildThreadNum (32)
+
 // Thread state
 enum ThreadStatus
 {
@@ -116,6 +118,9 @@ class Thread
         printf("%s, ", name);
     }
     void printStatus();
+
+    Thread *childThread[MaxChildThreadNum];
+    Thread *parentThread;
 
   private:
     // some of the private data for this class is listed above
@@ -208,8 +213,13 @@ class Thread
     {
         currentStep = _step;
     }
-
 };
+
+#ifdef USER_PROGRAM
+void start_progress(char *filename);
+
+void before_fork(AddrSpacePC *parentSpacePC);
+#endif
 
 class ThreadPool
 {
@@ -221,7 +231,7 @@ class ThreadPool
     int findEmptySlot();
     int findCurrentSlot();
     ThreadPool(int _poolSize);
-    
+
   public:
     static ThreadPool *getInstance()
     {

@@ -126,8 +126,9 @@ class Machine {
     void WriteRegister(int num, int value);
 				// store a value into a CPU register
 
+    void IncreasePC();
 
-// Routines internal to the machine simulation -- DO NOT call these 
+    // Routines internal to the machine simulation -- DO NOT call these 
 
     void OneInstruction(Instruction *instr); 	
     				// Run one instruction of a user program.

@@ -35,7 +35,7 @@
 
 Thread::Thread(char *threadName)
 {
-    strncpy(name, threadName,10);
+    strncpy(name, threadName, 10);
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -47,6 +47,9 @@ Thread::Thread(char *threadName)
     cpuTime = 0;
     currentStep = 1;
     timeSlide = 10;
+
+    memset(childThread, 0, sizeof(Thread *) * MaxChildThreadNum);
+    parentThread = NULL;
 
 #ifdef USER_PROGRAM
     space = NULL;
@@ -109,10 +112,10 @@ void Thread::Fork(VoidFunctionPtr func, void *arg)
                                   // are disabled!
     (void)interrupt->SetLevel(oldLevel);
 
-    if(switchFlag)
-    {
-        currentThread->Yield();
-    }
+    if (switchFlag)
+        {
+            currentThread->Yield();
+        }
 }
 
 //----------------------------------------------------------------------
@@ -323,7 +326,8 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 
 void Thread::SaveUserState()
 {
-    for (int i = 0; i < NumTotalRegs; i++) userRegisters[i] = machine->ReadRegister(i);
+    for (int i = 0; i < NumTotalRegs; i++)
+        userRegisters[i] = machine->ReadRegister(i);
 }
 
 //----------------------------------------------------------------------
@@ -337,9 +341,59 @@ void Thread::SaveUserState()
 
 void Thread::RestoreUserState()
 {
-    for (int i = 0; i < NumTotalRegs; i++) machine->WriteRegister(i, userRegisters[i]);
+    for (int i = 0; i < NumTotalRegs; i++)
+        machine->WriteRegister(i, userRegisters[i]);
+}
+
+void start_progress(char *filename)
+{
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL)
+        {
+            printf("Unable to open file %s\n", filename);
+            return;
+        }
+    space = new AddrSpace(executable);
+    currentThread->space = space;
+
+    space->InitRegisters();  // set the initial register values
+    space->RestoreState();   // load page table register
+
+    machine->Run();  // jump to the user progam
+    ASSERT(FALSE);   // machine->Run never returns;
+                     // the address space exits
 }
 #endif
+
+void before_fork(AddrSpacePC *parentSpacePC)
+{
+    // copy everyting in parentSpace
+    AddrSpace *space = parentSpacePC->space;
+    AddrSpace *newSpace = new AddrSpace(space->execFile);
+    newSpace->numPages = space->numPages;
+    newSpace->pageTable = new TranslationEntry[newSpace->numPages];
+    for (int i = 0; i < newSpace->numPages; ++i)
+        newSpace->pageTable[i] = space->pageTable[i];
+    newSpace->swapPageTable = new TranslationEntry[NumSwapPages];
+    for (int i = 0; i < NumSwapPages; ++i)
+        newSpace->swapPageTable[i] = space->swapPageTable[i];
+    newSpace->execFile = space->execFile;
+    newSpace->offsetVaddrToFile = space->offsetVaddrToFile;
+    newSpace->readOnlyPageStart = space->readOnlyPageStart;
+    newSpace->readOnlyPageEnd = space->readOnlyPageEnd;
+
+
+    currentThread->space = newSpace;
+
+    // copy PC and NextPC
+    machine->WriteRegister(PCReg, parentSpacePC->PC);
+    machine->WriteRegister(NextPCReg, parentSpacePC->PC + 4);
+
+    currentThread->SaveUserState();
+    machine->Run();
+}
 
 void Thread::printStatus()
 {
@@ -351,15 +405,15 @@ int ThreadPool::findEmptySlot()
     for (int i = 0; i < poolSize; ++i)
         if (pool[i] == NULL)
             return i;
-    return - 1;
+    return -1;
 }
 
 int ThreadPool::findCurrentSlot()
 {
-    for (int i = 0; i < poolSize;++i)
-        if(pool[i] == currentThread)
+    for (int i = 0; i < poolSize; ++i)
+        if (pool[i] == currentThread)
             return i;
-    return - 1;
+    return -1;
 }
 
 ThreadPool::ThreadPool(int _poolSize)
@@ -367,7 +421,8 @@ ThreadPool::ThreadPool(int _poolSize)
     poolSize = _poolSize;
     threadNum = 0;
     pool = new Thread *[poolSize];
-    for (int i = 0; i < poolSize; ++i) pool[i] = NULL;
+    for (int i = 0; i < poolSize; ++i)
+        pool[i] = NULL;
 }
 
 
@@ -394,10 +449,10 @@ Thread *ThreadPool::createThread(char *threadName)
 {
     int pos = findEmptySlot();
     if (pos == -1)
-    {
-        DEBUG('t', "Thread pool is full!");
-        return;
-    }
+        {
+            DEBUG('t', "Thread pool is full!");
+            return;
+        }
     Thread *t = new Thread(threadName);
     pool[pos] = t;
     t->setTid(pos + 1);
@@ -409,11 +464,11 @@ Thread *ThreadPool::createThread(char *threadName)
 bool ThreadPool::deleteCurrentThread()
 {
     int pos = findCurrentSlot();
-    if(pos == -1)
-    {
-        DEBUG('t', "Can't find current thread in pool.");
-        return false;
-    }
+    if (pos == -1)
+        {
+            DEBUG('t', "Can't find current thread in pool.");
+            return false;
+        }
     pool[pos] = NULL;
     threadNum--;
     return true;

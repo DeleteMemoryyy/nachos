@@ -112,8 +112,15 @@ void Print(char *name)
 #define FileName "/TestFile"
 #define Contents "1234567890"
 // #define ContentSize strlen(Contents)
-#define ContentSize 100
+#define ContentSize 50
 #define FileSize ((int)(ContentSize * 10))
+
+static void FileCreate()
+{
+    if (!fileSystem->Create(FileName, 0))
+        printf("Perf test: can't create %s\n", FileName);
+    return;
+}
 
 static void FileWrite()
 {
@@ -123,11 +130,7 @@ static void FileWrite()
     char *contentBuf = new char[ContentSize];
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0))
-        {
-            printf("Perf test: can't create %s\n", FileName);
-            return;
-        }
+
     openFile = fileSystem->Open(FileName);
     if (openFile == NULL)
         {
@@ -179,21 +182,32 @@ static void FileRead()
     printf("Sequential read success! %d byte file, in %d byte chunks\n", FileSize, ContentSize);
 }
 
+void FileTest1()
+{
+    printf("Thread1 is visiting file\n");
+}
+
+void FileTest2()
+{
+    printf("Thread2 is visiting file\n");
+}
+
 void PerformanceTest()
 {
     printf("Starting file system performance test:\n");
     stats->Print();
-    FileWrite();
-    FileRead();
+    FileCreate();
+
+    for (int i = 0; i < 20; ++i)
+        {
+            FileWrite();
+            FileRead();
+        }
+
     if (!fileSystem->Remove(FileName))
         {
             printf("Perf test: unable to remove %s\n", FileName);
             return;
         }
     stats->Print();
-}
-
-void FileTest1()
-{
-    printf("Starting file teset 1\n");
 }

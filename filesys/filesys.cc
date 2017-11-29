@@ -229,7 +229,7 @@ bool FileSystem::Create(char *name, int initialSize)
                             hdr->WriteBack(sector);
                             directory->WriteBack(directoryFile);
                             freeMap->WriteBack(freeMapFile);
-                            printf("File created successfully!\n");
+                            // printf("File created successfully!\n");
                             hdr->Print();
                         }
                     delete hdr;
@@ -262,7 +262,7 @@ OpenFile *FileSystem::Open(char *name)
     sector = directory->Find(name);
     if (sector >= 0)
         openFile = new OpenFile(sector);  // name was found in directory
-    printf("File opened successfully!\n");
+    // printf("File opened successfully!\n");
     openFile->hdr->Print();
     delete directory;
     return openFile;  // return NULL if not found
